@@ -1,3 +1,4 @@
+use super::input_path::PathType;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -17,6 +18,9 @@ pub(crate) enum Args {
         /// Apple developer account username
         #[structopt(short, long)]
         developer_account: String,
+
+        #[structopt(short, long)]
+        override_path_type: Option<PathType>,
 
         /// Name of keychain item containing developer account password
         /// (see: https://developer.apple.com/documentation/xcode/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow)

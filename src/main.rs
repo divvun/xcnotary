@@ -14,6 +14,8 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let args = util::cli::parse();
 
     let emphasized = Style::new().white().bold();
@@ -29,8 +31,10 @@ fn run() -> Result<(), Box<dyn Error>> {
             password_keychain_item,
             input_path,
             provider,
+            override_path_type,
         } => {
-            let (path_type, bundle_id) = util::input_path::path_info(&input_path)?;
+            let (path_type, bundle_id) =
+                util::input_path::path_info(&input_path, override_path_type)?;
 
             precheck::run(&input_path, &path_type, false)?;
             notarize::run(

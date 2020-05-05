@@ -13,6 +13,8 @@ use crate::util::OperationError;
 
 use super::NotarizeOp;
 
+use log::debug;
+
 struct InputFilePath {
     path: PathBuf,
     _temp_dir: Option<TempDir>,
@@ -106,7 +108,11 @@ impl NotarizeOp {
     fn zip_bundle(&self) -> Result<InputFilePath, OperationError> {
         let temp_dir = TempFileBuilder::new().tempdir().unwrap();
 
-        let bundle_parent_dir_path = self.input_path.parent().unwrap();
+        let absolute_input = self
+            .input_path
+            .canonicalize()
+            .map_err(|_| OperationError::new("Failed to get absolute path to input"))?;
+        let bundle_parent_dir_path = absolute_input.parent().unwrap();
         let bundle_file_name = self.input_path.file_name().unwrap();
 
         let mut zip_path = PathBuf::from(temp_dir.path());
@@ -144,7 +150,7 @@ impl NotarizeOp {
         if !output.status.success() {
             return Err(OperationError::detail(
                 "Notarization upload failed",
-                &String::from_utf8(output.stderr).unwrap(),
+                &String::from_utf8(output.stdout).unwrap(),
             ));
         }
 
@@ -155,14 +161,12 @@ impl NotarizeOp {
 
     /// Retrieves current status from the notarization service.
     fn get_status(&self, request_id: &str) -> Result<NotarizationInfo, OperationError> {
-        let output = self.run_altool(AltoolArgs::NotarizationInfo {
-            request_id: request_id.clone(),
-        });
+        let output = self.run_altool(AltoolArgs::NotarizationInfo { request_id });
 
         if !output.status.success() {
             return Err(OperationError::detail(
                 "Notarization status check failed",
-                &String::from_utf8(output.stderr).unwrap(),
+                &String::from_utf8(output.stdout).unwrap(),
             ));
         }
 
@@ -189,7 +193,7 @@ impl NotarizeOp {
             .unwrap();
 
         if !output.status.success() {
-            let output = String::from_utf8(output.stderr).unwrap();
+            let output = String::from_utf8(output.stdout).unwrap();
             return Err(OperationError::detail("Staple failed", &output));
         }
 
@@ -213,7 +217,7 @@ impl NotarizeOp {
             .as_ref()
             .map_or(vec![], |p| vec!["--asc-provider", &p]);
 
-        Command::new("/usr/bin/xcrun")
+        let output = Command::new("/usr/bin/xcrun")
             .args(&[
                 "altool",
                 "-u",
@@ -226,6 +230,8 @@ impl NotarizeOp {
             .args(provider_args)
             .args(args)
             .output()
-            .unwrap()
+            .unwrap();
+
+        output
     }
 }

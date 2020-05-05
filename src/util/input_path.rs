@@ -1,12 +1,16 @@
 use super::OperationError;
 use crate::util::plist::{bundle_info_from_file, structs::BundleInfo};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{process::Command, str::FromStr, string::ParseError};
 
 pub(crate) fn path_info<P: AsRef<Path>>(
     input_path: P,
+    override_path_type: Option<PathType>,
 ) -> Result<(PathType, String), OperationError> {
-    let path_type = identify_path_type(&input_path)?;
+    let path_type = match override_path_type {
+        Some(t) => t,
+        _ => identify_path_type(&input_path)?,
+    };
     let bundle_id = match &path_type {
         PathType::AppBundle => read_bundle_info(&input_path)?.id,
         // Generate a pseudo-bundle ID. This value is used for informational purposes
@@ -63,10 +67,23 @@ pub(crate) fn identify_path_type<P: AsRef<Path>>(
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum PathType {
     AppBundle,
     DiskImage,
     InstallerPackage,
+}
+
+impl FromStr for PathType {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "app" => Ok(PathType::AppBundle),
+            "dmg" => Ok(PathType::DiskImage),
+            "pkg" => Ok(PathType::InstallerPackage),
+            _ => Err(anyhow::anyhow!(format!("Invalid PathType: {:?}", s))),
+        }
+    }
 }
 
 fn read_bundle_info<P: AsRef<Path>>(bundle_path: P) -> Result<BundleInfo, OperationError> {
