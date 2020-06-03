@@ -11,9 +11,7 @@ use crate::util::plist;
 use crate::util::plist::structs::{NotarizationInfo, NotarizationStatus};
 use crate::util::OperationError;
 
-use super::NotarizeOp;
-
-use log::debug;
+use super::{Password, NotarizeOp};
 
 struct InputFilePath {
     path: PathBuf,
@@ -35,7 +33,7 @@ impl NotarizeOp {
         path_type: PathType,
         bundle_id: String,
         developer_account: String,
-        password_keychain_item: String,
+        password: Password,
         provider: Option<String>,
     ) -> Self {
         NotarizeOp {
@@ -43,7 +41,7 @@ impl NotarizeOp {
             path_type,
             bundle_id,
             developer_account,
-            password_keychain_item,
+            password,
             provider,
         }
     }
@@ -223,7 +221,7 @@ impl NotarizeOp {
                 "-u",
                 &self.developer_account,
                 "-p",
-                &format!("@keychain:{}", self.password_keychain_item),
+                &format!("{}", self.password),
                 "--output-format",
                 "xml",
             ])

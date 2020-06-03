@@ -5,6 +5,7 @@ mod util;
 use console::Style;
 use std::error::Error;
 use util::cli::Args;
+use notarize::Password;
 
 fn main() {
     run().unwrap_or_else(|err| {
@@ -28,6 +29,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         Args::Notarize {
             developer_account,
+            password,
+            password_env,
             password_keychain_item,
             input_path,
             provider,
@@ -36,13 +39,23 @@ fn run() -> Result<(), Box<dyn Error>> {
             let (path_type, bundle_id) =
                 util::input_path::path_info(&input_path, override_path_type)?;
 
+            let password = if let Some(p) = password {
+                Password::Literal(p)
+            } else if let Some(p) = password_env {
+                Password::Env(p)
+            } else if let Some(p) = password_keychain_item {
+                Password::Keychain(p)
+            } else {
+                panic!("You must provide a password in some form.");
+            };
+
             precheck::run(&input_path, &path_type, false)?;
             notarize::run(
                 input_path,
                 path_type,
                 bundle_id,
                 developer_account,
-                password_keychain_item,
+                password,
                 provider,
             )?;
         }

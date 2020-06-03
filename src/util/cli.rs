@@ -25,7 +25,15 @@ pub(crate) enum Args {
         /// Name of keychain item containing developer account password
         /// (see: https://developer.apple.com/documentation/xcode/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow)
         #[structopt(short = "k", long = "developer-password-keychain-item")]
-        password_keychain_item: String,
+        password_keychain_item: Option<String>,
+
+        /// Literal password
+        #[structopt(short = "p")]
+        password: Option<String>,
+
+        /// Environment variable to use as password
+        #[structopt(short = "e", long = "password-env")]
+        password_env: Option<String>,
 
         /// Path to bundle or package
         #[structopt(parse(from_os_str))]
